@@ -5,8 +5,10 @@ with(RandomTools):
 with (plots):
 path := currentdir ():
 global GRMotion_path:
+#Путь по умолчанию: можно указать path (тогда будет папка с Maple)
 GRMotion_path := "C:\\GRMotion";
 randomize():
+#Генерация начальных значений для потока фотонов:
 global Radius: 
 Radius := convert (Generate (posint(range=5)),string):
 global Theta: 
@@ -14,6 +16,7 @@ Theta := convert (Generate (posint(range=90)),string):
 global Phi: 
 Phi := convert (Generate (posint(range=90)),string):
 
+#Процедура изменения папки
 ChangeDirectory := proc (value)
 	global GRMotion_path:
 	if value = "" or value = 'cancel' then
@@ -24,6 +27,7 @@ ChangeDirectory := proc (value)
 	Maplets:-Tools:-Set ('TF_FilePath' = GRMotion_path);
 end proc:
 
+#окно предупреждения, на случай, если указана некорректная папка.
 maplet_ircorrect_path := Maplet 
 (
 	MessageDialog
@@ -34,6 +38,7 @@ maplet_ircorrect_path := Maplet
 	)
 ):
 
+#Основная процедура, запускающая рассчет
 StartGRMotion3 := proc ()
 	local trajectory_dat:
 	local grmotion_2_exe:
@@ -72,6 +77,7 @@ StartGRMotion3 := proc ()
 	#total.dat - status of last photon in trajectory
 	#Dist.dat - radius, phi
 	
+	#Передача параметров в вычислительный модуль
 	fd := FileTools[Text][Open](pad_dat, create=true, overwrite=true);
 	FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Radius'));
 	FileTools[Text][WriteString] (fd, " "); 	
@@ -84,12 +90,14 @@ StartGRMotion3 := proc ()
 		if (FileTools[Exists](trajectory_dat)) then
 			FileTools[Remove](trajectory_dat);
 		end if:
+		#Запуск рассчета
 		system(grmotion_2_exe_launch);
 		while (not FileTools[Exists](trajectory_dat))
 		do
 			print ("waiting Trajectory.dat to appear"):
 			sleep (100);
 		end do:
+		#Чтение данных результата
 		lines := FileTools[Text][CountLines] (trajectory_dat);
 		#print (lines);
 		DataInMatrix := Matrix (lines, 3);
@@ -114,6 +122,7 @@ StartGRMotion3 := proc ()
 			#print ("next string");
 		end do:
 		FileTools[Text][Close] (fd);
+		#Механическое преобразование в декартовы координаты
 		Converted := DataInMatrix;
 		for i from 1 to lines by 1 do
 			#print (i):
@@ -135,6 +144,7 @@ StartGRMotion3 := proc ()
 	
 end proc:
 
+#Файловый диалог смены папки
 maplet2 := Maplet
 (
    FileDialog['TF_GRMotion_Directory']
@@ -147,6 +157,7 @@ maplet2 := Maplet
 	)
 ):
 
+#Процедура запуска файлового диалога выбора папки
 rline := proc () 
 	local fn:
 	local str:
@@ -155,6 +166,7 @@ rline := proc ()
 	ChangeDirectory (str)
 end proc:
 
+#Процедура, показывающая Помощь
 ShowHelp := proc ()
 	Display
 	(
@@ -173,6 +185,7 @@ ShowHelp := proc ()
 	)
 end proc:
 
+#Процедура, показывающая окно "О программе"
 ShowAbout := proc ()
 	global GRMotion_path:
 	Display
@@ -183,7 +196,7 @@ ShowAbout := proc ()
 			(
 				title = "О программе",
 				[
-					"GRMotion 1.0.3\nРассчет и визуализация движения потока фотонов в гравитационном поле\nвращающейся чёрной дыры в рамках общей теории относительности.\n\nПроект сделал в образовательных целях.\nGitHub: https://github.com/Akhrameev/GRMotion_Maple",
+					"GRMotion 1.0.3\nРасчет и визуализация движения потока фотонов в гравитационном поле\nвращающейся чёрной дыры в рамках общей теории относительности.\n\nПроект сделал в образовательных целях.\nGitHub: https://github.com/Akhrameev/GRMotion_Maple",
 					Label (Image ("C:\\GRMotion\\I.jpg")),
 					[
 						"Разработчик и автор идеи:\n\n\n\n",
@@ -196,6 +209,7 @@ ShowAbout := proc ()
 	)
 end proc:
 
+#Главное меню программы
 maplet1 := Maplet
 (
    Window ['GlobalMenu']
@@ -227,9 +241,10 @@ maplet1 := Maplet
 					Evaluate(function = 'StartGRMotion3()')
 				)
 			),
-			Plotter['plotter'](width = 600, height = 600)
+			Plotter['plotter'](width = 600, height = 400)
 		]
 	),
+	#Верхнее меню с выходом и со справкой
 	MenuBar['MenuBarGRMotion']
 	(
 		Menu
