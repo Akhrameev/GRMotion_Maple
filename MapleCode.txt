@@ -4,16 +4,12 @@ with(Maplets[Elements]):
 with(RandomTools):
 with (plots):
 path := currentdir ():
-global GRMotion_path:
 #Путь по умолчанию: можно указать path (тогда будет папка с Maple)
 GRMotion_path := "C:\\GRMotion";
 randomize():
 #Генерация начальных значений для потока фотонов:
-global Radius: 
 Radius := convert (Generate (posint(range=5)),string):
-global Theta: 
 Theta := convert (Generate (posint(range=90)),string):
-global Phi: 
 Phi := convert (Generate (posint(range=90)),string):
 
 #Процедура изменения папки
@@ -39,30 +35,15 @@ maplet_ircorrect_path := Maplet
 ):
 
 #Основная процедура, запускающая рассчет
-StartGRMotion3 := proc ()
-	local trajectory_dat:
-	local grmotion_2_exe:
-	local grmotion_2_exe_launch:
-	local pad_dat:
-	local randnum_dat:
-	local par_dat:
-	local fd:
-	local lines:
-	local i:
-	local DataInMatrix:
-	local Converted:
-	local ListOfPlots:
-	local r:
-	local theta:
-	local phi:
+StartGRMotion3 := proc (a)
+	local trajectory_dat, grmotion_2_exe, grmotion_2_exe_launch, pad_dat, randnum_dat, par_dat, fd, lines, i, DataInMatrix, Converted, ListOfPlots, r, theta, phi, status, total_dat:
 	global GRMotion_path:
-	#GRMotion_path := "C:\\GRMotion";
-	#"C:\\Program Files (x86)\\Maple 15"
 	trajectory_dat := cat (GRMotion_path, "\\Trajectory.dat");
 	grmotion_2_exe := cat (GRMotion_path, "\\GRMotion2.exe");
 	grmotion_2_exe_launch := cat("cd..&cd..&cd..&cd..&cd ", GRMotion_path, "&", GRMotion_path, "\\GRMotion2.exe");
 	pad_dat := cat (GRMotion_path, "\\par.dat");
 	randnum_dat := cat (GRMotion_path, "\\RandNum.dat");
+	total_dat := cat (GRMotion_path, "\\total.dat");
 	#RandNum 1..1000000000
 	#GRMotion3.exe
 	#spectra (par.dat may be the same)	
@@ -79,11 +60,23 @@ StartGRMotion3 := proc ()
 	
 	#Передача параметров в вычислительный модуль
 	fd := FileTools[Text][Open](pad_dat, create=true, overwrite=true);
-	FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Radius'));
+	if (a) then
+		FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Radius'));
+	else
+		FileTools[Text][WriteString] (fd, convert (Generate (posint(range=5)),string));
+	end if:
 	FileTools[Text][WriteString] (fd, " "); 	
-	FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Theta'));
-	FileTools[Text][WriteString] (fd, " "); 	
-	FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Phi')); 
+	if (a) then
+		FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Theta'));
+	else
+		FileTools[Text][WriteString] (fd, convert (Generate (posint(range=90)),string)):
+	end if:
+	FileTools[Text][WriteString] (fd, " ");
+	if (a) then
+		FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Phi'));
+	else
+		FileTools[Text][WriteString] (fd, convert (Generate (posint(range=90)),string)):
+	end if:
 	FileTools[Text][WriteString] (fd, " "); 
 	FileTools[Text][Close](fd);
 	if (FileTools[Exists](grmotion_2_exe)) then
@@ -102,14 +95,14 @@ StartGRMotion3 := proc ()
 		#print (lines);
 		DataInMatrix := Matrix (lines, 3);
 		for i from 1 to lines by 1 do
-			DataInMatrix [i, 1] := FileTools[Text][ReadNextFloat](fd);
+			DataInMatrix [i, 1] := FileTools[Text][ReadNextFloat](trajectory_dat);
 			#print (DataInMatrix [i, 1]);
-			DataInMatrix [i, 2] := FileTools[Text][ReadNextFloat](fd);
+			DataInMatrix [i, 2] := FileTools[Text][ReadNextFloat](trajectory_dat);
 			#print (DataInMatrix [i, 2]);
-			DataInMatrix [i, 3] := FileTools[Text][ReadNextFloat](fd);
+			DataInMatrix [i, 3] := FileTools[Text][ReadNextFloat](trajectory_dat);
 			#print (DataInMatrix [i, 3]);
 			#DataInMatrix [i, 4] := 
-			FileTools[Text][ReadNextFloat](fd);
+			FileTools[Text][ReadNextFloat](trajectory_dat);
 			if DataInMatrix [i, 1] > 15 then
 				DataInMatrix [i, 1] := DataInMatrix [1, 1]:
 				DataInMatrix [i, 2] := DataInMatrix [1, 2]:
@@ -121,7 +114,18 @@ StartGRMotion3 := proc ()
 			#print (DataInMatrix [i, 4]);
 			#print ("next string");
 		end do:
-		FileTools[Text][Close] (fd);
+		FileTools[Text][Close] (trajectory_dat);
+		
+		status := FileTools[Text][ReadNextInteger] (total_dat):
+		if (status = 0) then
+			Maplets:-Elements:-SetOption('state'('background') = "#FF0000"):
+		end if:
+		if (status = 1) then
+			Maplets:-Elements:-SetOption('state'('background') = "#FFFF00"):
+		end if:
+		if (status = 2) then
+			Maplets:-Elements:-SetOption('state'('background') = "#00FF00"):
+		end if:
 		#Механическое преобразование в декартовы координаты
 		Converted := DataInMatrix;
 		for i from 1 to lines by 1 do
@@ -129,9 +133,9 @@ StartGRMotion3 := proc ()
 			r := evalf (DataInMatrix [i, 1]):
 			theta := evalf (DataInMatrix [i, 2]):
 			phi := evalf (DataInMatrix [i, 3]):
-			Converted [i, 1] := evalf (r * sin ((Pi/180.0)*theta) * cos ((Pi/180.0)*phi));
-			Converted [i, 2] := evalf (r * sin ((Pi/180.0)*theta) * sin ((Pi/180.0)*phi));
-			Converted [i, 3] := evalf (r * cos ((Pi/180.0)*theta));
+			Converted [i, 1] := evalf (r * cos ((Pi/180.0)*theta) * cos ((Pi/180.0)*phi));
+			Converted [i, 2] := evalf (r * cos ((Pi/180.0)*theta) * sin ((Pi/180.0)*phi));
+			Converted [i, 3] := evalf (r * sin ((Pi/180.0)*theta));
 			#print (Converted [i, 1]):
 			#print (Converted [i, 2]):
 			#print (Converted [i, 3]):
@@ -159,8 +163,8 @@ maplet2 := Maplet
 
 #Процедура запуска файлового диалога выбора папки
 rline := proc () 
-	local fn:
-	local str:
+	local fn, str:
+	#local str:
 	fn := Maplets[Display](maplet2); 
 	str := op(fn):
 	ChangeDirectory (str)
@@ -222,25 +226,42 @@ maplet1 := Maplet
 				Button("Указать Папку", Evaluate(function = 'rline()'))
 			],
 			[
-				"Радиус:",
-				TextField['TF_Radius'](Radius, width = 50)
+				[
+					"Радиус:",
+					TextField['TF_Radius'](Radius)
+				],
+				[
+					"Тетта:  ",
+					TextField['TF_Theta'](Theta)
+				],
+				[
+					"Фи:     ",
+					TextField['TF_Phi'](Phi)
+				]
 			],
 			[
-				"Тетта:  ",
-				TextField['TF_Theta'](Theta, width = 50)
+				"Количество квантов:",
+				TextField['TF_Count']("10", width = 60)
 			],
 			[
-				"Фи:     ",
-				TextField['TF_Phi'](Phi, width = 50)
-			],
-			Button['B_Start']
-			(
-				"Рассчитать и показать", 
-				Action 
+				Button['B_Start_Count']
 				(
-					Evaluate(function = 'StartGRMotion3()')
+					"Рассчитать и показать траектории сразу несколько квантов", 
+					Action 
+					(
+						Evaluate(function = 'StartGRMotion3(false)')
+					)
+				),
+				Button['B_Start']
+				(
+					"Рассчитать и показать траекторию одного кванта", 
+					Action 
+					(
+						Evaluate(function = 'StartGRMotion3(true)')
+					)
 				)
-			),
+			],
+			Label ['state'] ("", width = 10, height = 10, background="#FFFFFF"),
 			Plotter['plotter'](width = 600, height = 400)
 		]
 	),
