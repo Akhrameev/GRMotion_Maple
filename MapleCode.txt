@@ -65,6 +65,9 @@ StartGRMotion3 := proc (a)
 		if (not type (photons_to_count, posint)) then
 			photons_to_count := 3:
 		end if:
+		if (photons_to_count > 100) then
+			photons_to_count := 100:
+		end if:
 	end if:
 	for counting_photon from 1 to photons_to_count by 1 do
 		#Передача параметров в вычислительный модуль
