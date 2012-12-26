@@ -63,7 +63,7 @@ StartGRMotion3 := proc (a)
 	if (not a) then
 		photons_to_count := convert (Maplets:-Tools:-Get('TF_Count'), decimal, 10):
 		if (not type (photons_to_count, posint)) then
-			photons_to_count := 10:
+			photons_to_count := 3:
 		end if:
 	end if:
 	for counting_photon from 1 to photons_to_count by 1 do
@@ -87,7 +87,7 @@ StartGRMotion3 := proc (a)
 		if (a) then
 			FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Phi'));
 		else
-			FileTools[Text][WriteString] (fd, convert (Generate (posint(range=90)),string)):
+			FileTools[Text][WriteString] (fd, convert (Generate (posint(range=180)),string)):
 		end if:
 		FileTools[Text][WriteString] (fd, " "); 
 		FileTools[Text][Close](fd);
@@ -145,15 +145,17 @@ StartGRMotion3 := proc (a)
 	end do:
 	#Механическое преобразование в декартовы координаты
 	if (not total_points = 0) then
-		sort (GlobalMatrix):
+		if (photons_to_count > 1) then
+			sort (GlobalMatrix):
+		end if:
 		Converted := GlobalMatrix;
 		for i from 1 to total_points by 1 do
 			r := evalf (GlobalMatrix [i, 1]):
 			theta := evalf (GlobalMatrix [i, 2]):
 			phi := evalf (GlobalMatrix [i, 3]):
-			Converted [i, 1] := evalf (r * cos ((Pi/180.0)*theta) * cos ((Pi/180.0)*phi));
-			Converted [i, 2] := evalf (r * cos ((Pi/180.0)*theta) * sin ((Pi/180.0)*phi));
-			Converted [i, 3] := evalf (r * sin ((Pi/180.0)*theta));
+			Converted [i, 1] := evalf (r * sin ((Pi/180.0)*theta) * cos ((Pi/180.0)*phi));
+			Converted [i, 2] := evalf (r * sin ((Pi/180.0)*theta) * sin ((Pi/180.0)*phi));
+			Converted [i, 3] := evalf (r * cos ((Pi/180.0)*theta));
 			if (abs (Converted [i, 1]) > 16 or abs (Converted [i, 2]) > 16 or abs (Converted [i, 3]) > 16) then
 				Converted [i, 1] := Converted [1, 1]:
 				Converted [i, 2] := Converted [1, 2]:
@@ -257,7 +259,7 @@ maplet1 := Maplet
 			],
 			[
 				"Количество квантов:",
-				TextField['TF_Count']("10", width = 60)
+				TextField['TF_Count']("3", width = 60)
 			],
 			[
 				Button['B_Start_Count']
@@ -277,7 +279,7 @@ maplet1 := Maplet
 					)
 				)
 			],
-			Label ['state'] ("", width = 10, height = 10),
+			Label ['state'] ("", width = 50, height = 10, background = "#FFFFFF"),
 			Plotter['plotter'](width = 600, height = 400)
 		]
 	),
