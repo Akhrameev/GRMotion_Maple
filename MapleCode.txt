@@ -37,7 +37,7 @@ maplet_ircorrect_path := Maplet
 
 #Основная процедура, запускающая рассчет
 StartGRMotion3 := proc (a)
-	local trajectory_dat, grmotion_2_exe, grmotion_2_exe_launch, pad_dat, randnum_dat, par_dat, fd, lines, i, DataInMatrix, Converted, ListOfPlots, r, theta, phi, status, total_dat, total_points, counting_photon, photons_to_count, GlobalMatrix:
+	local trajectory_dat, grmotion_2_exe, grmotion_2_exe_launch, pad_dat, randnum_dat, par_dat, fd, lines, i, DataInMatrix, Converted, ListOfPlots, r, theta, phi, status, total_dat, total_points, counting_photon, photons_to_count, GlobalMatrix, generated_radius:
 	global GRMotion_path:
 	photons_to_count := 1:
 	counting_photon := 1:
@@ -72,7 +72,10 @@ StartGRMotion3 := proc (a)
 		if (a) then
 			FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Radius'));
 		else
-			FileTools[Text][WriteString] (fd, convert (Generate (posint(range=5)),string));
+			if (counting_photon = 1) then
+				generated_radius := convert (Generate (posint(range=5)),string):
+			end if:
+			FileTools[Text][WriteString] (fd, generated_radius);
 		end if:
 		FileTools[Text][WriteString] (fd, " "); 	
 		if (a) then
@@ -108,7 +111,7 @@ StartGRMotion3 := proc (a)
 				DataInMatrix [i, 2] := FileTools[Text][ReadNextFloat](trajectory_dat);
 				DataInMatrix [i, 3] := FileTools[Text][ReadNextFloat](trajectory_dat);
 				FileTools[Text][ReadNextFloat](trajectory_dat);	#time
-				if DataInMatrix [i, 1] > 15 then
+				if DataInMatrix [i, 1] > 30 then
 					DataInMatrix [i, 1] := DataInMatrix [1, 1]:
 					DataInMatrix [i, 2] := DataInMatrix [1, 2]:
 					DataInMatrix [i, 3] := DataInMatrix [1, 3]
@@ -142,6 +145,7 @@ StartGRMotion3 := proc (a)
 	end do:
 	#Механическое преобразование в декартовы координаты
 	if (not total_points = 0) then
+		sort (GlobalMatrix):
 		Converted := GlobalMatrix;
 		for i from 1 to total_points by 1 do
 			r := evalf (GlobalMatrix [i, 1]):
@@ -150,6 +154,11 @@ StartGRMotion3 := proc (a)
 			Converted [i, 1] := evalf (r * cos ((Pi/180.0)*theta) * cos ((Pi/180.0)*phi));
 			Converted [i, 2] := evalf (r * cos ((Pi/180.0)*theta) * sin ((Pi/180.0)*phi));
 			Converted [i, 3] := evalf (r * sin ((Pi/180.0)*theta));
+			if (abs (Converted [i, 1]) > 16 or abs (Converted [i, 2]) > 16 or abs (Converted [i, 3]) > 16) then
+				Converted [i, 1] := Converted [1, 1]:
+				Converted [i, 2] := Converted [1, 2]:
+				Converted [i, 3] := Converted [1, 3]:
+			end if:
 		end do:
 		Maplets:-Tools:-Set('plotter'= display(pointplot3d (Converted), axes=boxed, symbol=solidsphere, scaling=constrained))
 	end if:
