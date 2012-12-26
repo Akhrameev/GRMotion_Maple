@@ -241,11 +241,11 @@ ShowAbout := proc ()
 			(
 				title = "О программе",
 				[
-					"GRMotion 1.0.3\nРасчет и визуализация движения потока фотонов в гравитационном поле\nвращающейся чёрной дыры в рамках общей теории относительности.\n\nПроект сделал в образовательных целях.\nGitHub: https://github.com/Akhrameev/GRMotion_Maple",
+					"GRMotion 1.0.4\nРасчет и визуализация движения потока фотонов в гравитационном поле\nвращающейся чёрной дыры в рамках общей теории относительности.\n\nПроект сделал в образовательных целях.\nGitHub: https://github.com/Akhrameev/GRMotion_Maple",
 					Label (Image (cat (GRMotion_path,"\\I.jpg"))),
 					[
 						"Разработчик и автор идеи:\n\n\n\n",
-						"Павел Ахрамеев\np.akhrameev@gmail.com\nvk.com/p0sha\nстудент 313 группы ВМК МГУ\n2012 год"
+						"Павел Ахрамеев\np.akhrameev@gmail.com\nvk.com/p0sha\nстудент 313 группы ВМК МГУ\nкафедры Оптимально Управления\n2012 год"
 					],
 					Button ("OK", onclick = Shutdown ())
 				]
