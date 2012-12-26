@@ -2,6 +2,7 @@
 with(Maplets):
 with(Maplets[Elements]):
 with(RandomTools):
+with (linalg):
 with (plots):
 path := currentdir ():
 #Путь по умолчанию: можно указать path (тогда будет папка с Maple)
@@ -36,15 +37,17 @@ maplet_ircorrect_path := Maplet
 
 #Основная процедура, запускающая рассчет
 StartGRMotion3 := proc (a)
-	local trajectory_dat, grmotion_2_exe, grmotion_2_exe_launch, pad_dat, randnum_dat, par_dat, fd, lines, i, DataInMatrix, Converted, ListOfPlots, r, theta, phi, status, total_dat:
+	local trajectory_dat, grmotion_2_exe, grmotion_2_exe_launch, pad_dat, randnum_dat, par_dat, fd, lines, i, DataInMatrix, Converted, ListOfPlots, r, theta, phi, status, total_dat, total_points, counting_photon, photons_to_count, GlobalMatrix:
 	global GRMotion_path:
+	photons_to_count := 1:
+	counting_photon := 1:
+	total_points := 0:
 	trajectory_dat := cat (GRMotion_path, "\\Trajectory.dat");
 	grmotion_2_exe := cat (GRMotion_path, "\\GRMotion2.exe");
 	grmotion_2_exe_launch := cat("cd..&cd..&cd..&cd..&cd ", GRMotion_path, "&", GRMotion_path, "\\GRMotion2.exe");
 	pad_dat := cat (GRMotion_path, "\\par.dat");
 	randnum_dat := cat (GRMotion_path, "\\RandNum.dat");
 	total_dat := cat (GRMotion_path, "\\total.dat");
-	#RandNum 1..1000000000
 	#GRMotion3.exe
 	#spectra (par.dat may be the same)	
 	fd := FileTools[Text][Open](randnum_dat, create=true, overwrite=true);
@@ -57,95 +60,99 @@ StartGRMotion3 := proc (a)
 	#trajectory[t].dat : radius, theta, phi, time
 	#total.dat - status of last photon in trajectory
 	#Dist.dat - radius, phi
-	
-	#Передача параметров в вычислительный модуль
-	fd := FileTools[Text][Open](pad_dat, create=true, overwrite=true);
-	if (a) then
-		FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Radius'));
-	else
-		FileTools[Text][WriteString] (fd, convert (Generate (posint(range=5)),string));
-	end if:
-	FileTools[Text][WriteString] (fd, " "); 	
-	if (a) then
-		FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Theta'));
-	else
-		FileTools[Text][WriteString] (fd, convert (Generate (posint(range=90)),string)):
-	end if:
-	FileTools[Text][WriteString] (fd, " ");
-	if (a) then
-		FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Phi'));
-	else
-		FileTools[Text][WriteString] (fd, convert (Generate (posint(range=90)),string)):
-	end if:
-	FileTools[Text][WriteString] (fd, " "); 
-	FileTools[Text][Close](fd);
-	if (FileTools[Exists](grmotion_2_exe)) then
-		if (FileTools[Exists](trajectory_dat)) then
-			FileTools[Remove](trajectory_dat);
+	if (not a) then
+		photons_to_count := convert (Maplets:-Tools:-Get('TF_Count'), decimal, 10):
+		if (not type (photons_to_count, posint)) then
+			photons_to_count := 10:
 		end if:
-		#Запуск рассчета
-		system(grmotion_2_exe_launch);
-		while (not FileTools[Exists](trajectory_dat))
-		do
-			print ("waiting Trajectory.dat to appear"):
-			sleep (100);
-		end do:
-		#Чтение данных результата
-		lines := FileTools[Text][CountLines] (trajectory_dat);
-		#print (lines);
-		DataInMatrix := Matrix (lines, 3);
-		for i from 1 to lines by 1 do
-			DataInMatrix [i, 1] := FileTools[Text][ReadNextFloat](trajectory_dat);
-			#print (DataInMatrix [i, 1]);
-			DataInMatrix [i, 2] := FileTools[Text][ReadNextFloat](trajectory_dat);
-			#print (DataInMatrix [i, 2]);
-			DataInMatrix [i, 3] := FileTools[Text][ReadNextFloat](trajectory_dat);
-			#print (DataInMatrix [i, 3]);
-			#DataInMatrix [i, 4] := 
-			FileTools[Text][ReadNextFloat](trajectory_dat);
-			if DataInMatrix [i, 1] > 15 then
-				DataInMatrix [i, 1] := DataInMatrix [1, 1]:
-				DataInMatrix [i, 2] := DataInMatrix [1, 2]:
-				DataInMatrix [i, 3] := DataInMatrix [1, 3]
+	end if:
+	for counting_photon from 1 to photons_to_count by 1 do
+		#Передача параметров в вычислительный модуль
+		fd := FileTools[Text][Open](pad_dat, create=true, overwrite=true);
+		if (a) then
+			FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Radius'));
+		else
+			FileTools[Text][WriteString] (fd, convert (Generate (posint(range=5)),string));
+		end if:
+		FileTools[Text][WriteString] (fd, " "); 	
+		if (a) then
+			FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Theta'));
+		else
+			FileTools[Text][WriteString] (fd, convert (Generate (posint(range=90)),string)):
+		end if:
+		FileTools[Text][WriteString] (fd, " ");
+		if (a) then
+			FileTools[Text][WriteString] (fd, Maplets:-Tools:-Get('TF_Phi'));
+		else
+			FileTools[Text][WriteString] (fd, convert (Generate (posint(range=90)),string)):
+		end if:
+		FileTools[Text][WriteString] (fd, " "); 
+		FileTools[Text][Close](fd);
+		if (FileTools[Exists](grmotion_2_exe)) then
+			if (FileTools[Exists](trajectory_dat)) then
+				FileTools[Remove](trajectory_dat);
 			end if:
-			if DataInMatrix [i, 1] < 0.7 then
-				i := lines:
+			#Запуск рассчета
+			system(grmotion_2_exe_launch);
+			while (not FileTools[Exists](trajectory_dat))
+			do
+				print ("waiting Trajectory.dat to appear"):
+				sleep (100);
+			end do:
+			#Чтение данных результата
+			lines := FileTools[Text][CountLines] (trajectory_dat);
+			#print (lines);
+			DataInMatrix := Matrix (lines, 3);
+			for i from 1 to lines by 1 do
+				DataInMatrix [i, 1] := FileTools[Text][ReadNextFloat](trajectory_dat);
+				DataInMatrix [i, 2] := FileTools[Text][ReadNextFloat](trajectory_dat);
+				DataInMatrix [i, 3] := FileTools[Text][ReadNextFloat](trajectory_dat);
+				FileTools[Text][ReadNextFloat](trajectory_dat);	#time
+				if DataInMatrix [i, 1] > 15 then
+					DataInMatrix [i, 1] := DataInMatrix [1, 1]:
+					DataInMatrix [i, 2] := DataInMatrix [1, 2]:
+					DataInMatrix [i, 3] := DataInMatrix [1, 3]
+				end if:
+				if DataInMatrix [i, 1] < 0.7 then
+					i := lines:
+				end if:
+			end do:
+			FileTools[Text][Close] (trajectory_dat);
+			status := FileTools[Text][ReadNextInteger] (total_dat):
+			if (status = 0) then
+				Maplets:-Elements:-SetOption('state'('background') = "#FF0000"):
 			end if:
-			#print (DataInMatrix [i, 4]);
-			#print ("next string");
-		end do:
-		FileTools[Text][Close] (trajectory_dat);
-		
-		status := FileTools[Text][ReadNextInteger] (total_dat):
-		if (status = 0) then
-			Maplets:-Elements:-SetOption('state'('background') = "#FF0000"):
-		end if:
-		if (status = 1) then
-			Maplets:-Elements:-SetOption('state'('background') = "#FFFF00"):
-		end if:
-		if (status = 2) then
-			Maplets:-Elements:-SetOption('state'('background') = "#00FF00"):
-		end if:
-		#Механическое преобразование в декартовы координаты
-		Converted := DataInMatrix;
-		for i from 1 to lines by 1 do
-			#print (i):
-			r := evalf (DataInMatrix [i, 1]):
-			theta := evalf (DataInMatrix [i, 2]):
-			phi := evalf (DataInMatrix [i, 3]):
+			if (status = 1) then
+				Maplets:-Elements:-SetOption('state'('background') = "#FFFF00"):
+			end if:
+			if (status = 2) then
+				Maplets:-Elements:-SetOption('state'('background') = "#00FF00"):
+			end if:
+			total_points := total_points + lines:
+			if (counting_photon = 1) then
+				GlobalMatrix := DataInMatrix:
+			else
+				GlobalMatrix := transpose (augment (transpose (GlobalMatrix), transpose (DataInMatrix))):
+			end if:
+		else
+			counting_photon := photons_to_count + 1:
+			total_points := 0:
+			Maplets[Display](maplet_ircorrect_path)
+		end if;
+	end do:
+	#Механическое преобразование в декартовы координаты
+	if (not total_points = 0) then
+		Converted := GlobalMatrix;
+		for i from 1 to total_points by 1 do
+			r := evalf (GlobalMatrix [i, 1]):
+			theta := evalf (GlobalMatrix [i, 2]):
+			phi := evalf (GlobalMatrix [i, 3]):
 			Converted [i, 1] := evalf (r * cos ((Pi/180.0)*theta) * cos ((Pi/180.0)*phi));
 			Converted [i, 2] := evalf (r * cos ((Pi/180.0)*theta) * sin ((Pi/180.0)*phi));
 			Converted [i, 3] := evalf (r * sin ((Pi/180.0)*theta));
-			#print (Converted [i, 1]):
-			#print (Converted [i, 2]):
-			#print (Converted [i, 3]):
 		end do:
-		#print ("pointplot3d ready"):
 		Maplets:-Tools:-Set('plotter'= display(pointplot3d (Converted), axes=boxed, symbol=solidsphere, scaling=constrained))
-	else
-		Maplets[Display](maplet_ircorrect_path)
-	end if;
-	
+	end if:
 end proc:
 
 #Файловый диалог смены папки
@@ -261,7 +268,7 @@ maplet1 := Maplet
 					)
 				)
 			],
-			Label ['state'] ("", width = 10, height = 10, background="#FFFFFF"),
+			Label ['state'] ("", width = 10, height = 10),
 			Plotter['plotter'](width = 600, height = 400)
 		]
 	),
