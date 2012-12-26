@@ -37,7 +37,7 @@ maplet_ircorrect_path := Maplet
 
 #Основная процедура, запускающая рассчет
 StartGRMotion3 := proc (a)
-	local trajectory_dat, grmotion_2_exe, grmotion_2_exe_launch, pad_dat, randnum_dat, par_dat, fd, lines, i, DataInMatrix, Converted, ListOfPlots, r, theta, phi, status, total_dat, total_points, counting_photon, photons_to_count, GlobalMatrix, generated_radius:
+	local trajectory_dat, grmotion_2_exe, grmotion_2_exe_launch, pad_dat, randnum_dat, par_dat, fd, lines, i, DataInMatrix, Converted, ListOfPlots, r, theta, phi, status, total_points, counting_photon, photons_to_count, GlobalMatrix, generated_radius, fort_2, temp:
 	global GRMotion_path:
 	photons_to_count := 1:
 	counting_photon := 1:
@@ -47,7 +47,7 @@ StartGRMotion3 := proc (a)
 	grmotion_2_exe_launch := cat("cd..&cd..&cd..&cd..&cd ", GRMotion_path, "&", GRMotion_path, "\\GRMotion2.exe");
 	pad_dat := cat (GRMotion_path, "\\par.dat");
 	randnum_dat := cat (GRMotion_path, "\\RandNum.dat");
-	total_dat := cat (GRMotion_path, "\\total.dat");
+	fort_2 := cat (GRMotion_path, "\\fort.2");
 	#GRMotion3.exe
 	#spectra (par.dat may be the same)	
 	fd := FileTools[Text][Open](randnum_dat, create=true, overwrite=true);
@@ -124,15 +124,33 @@ StartGRMotion3 := proc (a)
 				end if:
 			end do:
 			FileTools[Text][Close] (trajectory_dat);
-			status := FileTools[Text][ReadNextInteger] (total_dat):
-			if (status = 0) then
-				Maplets:-Elements:-SetOption('state'('background') = "#FF0000"):
+			FileTools[Text][ReadNextInteger] (fort_2):
+			FileTools[Text][ReadNextInteger] (fort_2):
+			temp := FileTools[Text][ReadNextInteger] (fort_2):
+			if (temp > 0) then
+				status := 0:
 			end if:
-			if (status = 1) then
-				Maplets:-Elements:-SetOption('state'('background') = "#FFFF00"):
+			temp := FileTools[Text][ReadNextInteger] (fort_2):
+			if (temp > 0) then
+				status := 2:
 			end if:
-			if (status = 2) then
-				Maplets:-Elements:-SetOption('state'('background') = "#00FF00"):
+			temp := FileTools[Text][ReadNextInteger] (fort_2):
+			if (temp > 0) then
+				status := 1:
+			end if:
+			FileTools[Text][Close] (fort_2);
+			if (photons_to_count = 1) then
+				if (status = 0) then
+					Maplets:-Tools:-Set('state' = "Квант улетел на бесконечность"):
+				end if:
+				if (status = 1) then
+					Maplets:-Tools:-Set('state' = "Квант вернулся в аккреционный диск"):
+				end if:
+				if (status = 2) then
+					Maplets:-Tools:-Set('state' = "Квант попал в чёрную дыру"):
+				end if:
+			else
+				Maplets:-Tools:-Set('state' = ""):
 			end if:
 			total_points := total_points + lines:
 			if (counting_photon = 1) then
@@ -284,7 +302,7 @@ maplet1 := Maplet
 					)
 				)
 			],
-			Label ['state'] (""), #, width = 50, height = 10, background = "#FFFFFF"),
+			TextField ['state'] ("", width = 40, enabled=false),
 			Plotter['plotter'](width = 600, height = 400)
 		]
 	),
